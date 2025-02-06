@@ -59,7 +59,9 @@ app.post('/api/get-file-details', async (req, res) => {
         try {
             const response = await drive.files.get({
                 fileId: fileId,
-                fields: 'id, name, size, mimeType'
+                fields: 'id, name, size, mimeType',
+                supportsAllDrives: true, // Support shared drives
+                includeItemsFromAllDrives: true // Include items from all drives
             });
 
             const file = response.data;
