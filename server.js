@@ -44,10 +44,10 @@ app.post('/api/get-file-details', async (req, res) => {
             });
         }
 
-        // Initialize Google Auth
+        // Initialize Google Auth with Rclone's default client ID and secret
         const oauth2Client = new google.auth.OAuth2(
-            process.env.GOOGLE_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_SECRET
+            process.env.GOOGLE_CLIENT_ID || '202264815644.apps.googleusercontent.com',
+            process.env.GOOGLE_CLIENT_SECRET || 'X4Z3ca8xfWDb1Voo-F9a7ZxJ'
         );
         oauth2Client.setCredentials({
             refresh_token: process.env.GOOGLE_REFRESH_TOKEN
@@ -56,24 +56,34 @@ app.post('/api/get-file-details', async (req, res) => {
         const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
         // Fetch file details
-        const response = await drive.files.get({
-            fileId: fileId,
-            fields: 'id, name, size, mimeType'
-        });
+        try {
+            const response = await drive.files.get({
+                fileId: fileId,
+                fields: 'id, name, size, mimeType'
+            });
 
-        const file = response.data;
+            const file = response.data;
 
-        // Format response
-        res.json({
-            success: true,
-            file: {
-                id: file.id,
-                name: file.name,
-                size: parseInt(file.size || 0),
-                sizeFormatted: formatSize(parseInt(file.size || 0)),
-                type: file.mimeType
+            // Format response
+            res.json({
+                success: true,
+                file: {
+                    id: file.id,
+                    name: file.name,
+                    size: parseInt(file.size || 0),
+                    sizeFormatted: formatSize(parseInt(file.size || 0)),
+                    type: file.mimeType
+                }
+            });
+        } catch (error) {
+            if (error.message.includes('File not found')) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'File not found. Please check the file ID or sharing settings.'
+                });
             }
-        });
+            throw error; // Re-throw other errors
+        }
     } catch (error) {
         console.error('API Error:', error);
         res.status(500).json({
@@ -133,41 +143,6 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         uptime: process.uptime()
     });
-});
-
-// API test endpoint
-app.get('/api/test', async (req, res) => {
-    try {
-        // Test Google Drive API
-        const oauth2Client = new google.auth.OAuth2(
-            process.env.GOOGLE_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_SECRET
-        );
-        oauth2Client.setCredentials({
-            refresh_token: process.env.GOOGLE_REFRESH_TOKEN
-        });
-
-        const drive = google.drive({ version: 'v3', auth: oauth2Client });
-
-        // Try to get a file
-        const response = await drive.files.get({
-            fileId: '1_example_file_id', // Replace with a valid file ID
-            fields: 'id, name, size, mimeType'
-        });
-
-        res.json({
-            success: true,
-            message: 'API is working',
-            auth: 'Google Drive authentication successful',
-            test_response: response.data
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'API test failed',
-            error: error.message
-        });
-    }
 });
 
 const PORT = process.env.PORT || 3000;
