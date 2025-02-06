@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Drive API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #0070f3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        pre {
+            background: #f1f1f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+        #loading {
+            display: none;
+            color: #666;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h2>Test Drive API</h2>
+    
+    <div class="form-group">
+        <label>File ID or URL:</label>
+        <input type="text" id="fileId" placeholder="Enter file ID or Google Drive URL">
+    </div>
+    
+    <button onclick="testAPI()">Test API</button>
+    <div id="loading">Loading...</div>
+    
+    <h3>Response:</h3>
+    <div id="summary"></div>
+    <pre id="response"></pre>
+    <script>
+        async function testAPI() {
+            const input = document.getElementById('fileId').value;
+            const response = document.getElementById('response');
+            const loading = document.getElementById('loading');
+            
+            try {
+                loading.style.display = 'block';
+                response.textContent = '';
+                
+                const res = await fetch('/api/get-file-details', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fileId: input
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    const summary = document.getElementById('summary');
+                    summary.innerHTML = `
+                        <div style="margin-bottom: 15px; padding: 10px; background: #e3f2fd; border-radius: 4px;">
+                            <strong>Summary:</strong><br>
+                            File Name: ${data.file.name}<br>
+                            File Size: ${data.file.sizeFormatted}<br>
+                            File Type: ${data.file.type}
+                        </div>
+                    `;
+                }
+                response.textContent = JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                response.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
